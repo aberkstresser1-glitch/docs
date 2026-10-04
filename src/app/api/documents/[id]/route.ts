@@ -4,7 +4,11 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import type { FirearmPayload } from "@/lib/document-types";
+import {
+  firearmDetailsComplete,
+  partyDetailsComplete,
+  type FirearmPayload,
+} from "@/lib/document-types";
 
 const sharedDraftSchema = z.object({
   agreementDate: z.string().min(1),
@@ -37,6 +41,7 @@ export async function PATCH(
   const document = await prisma.document.findFirst({
     where: { id, creatorId: session.user.id },
     include: {
+      participants: true,
       versions: {
         orderBy: { version: "desc" },
         take: 1,
@@ -84,6 +89,23 @@ export async function PATCH(
     },
   };
 
+  const buyerComplete =
+    partyDetailsComplete(previous.parties?.BUYER) &&
+    previous.parties?.BUYER?.state === data.buyerState;
+  const sellerComplete =
+    partyDetailsComplete(previous.parties?.SELLER) &&
+    previous.parties?.SELLER?.state === data.sellerState;
+  const bothLinked = document.participants
+    .filter((item) => ["BUYER", "SELLER"].includes(item.role))
+    .every((item) => Boolean(item.userId));
+  const nextStatus =
+    bothLinked &&
+    buyerComplete &&
+    sellerComplete &&
+    firearmDetailsComplete(previous.firearm)
+      ? "READY_TO_SIGN"
+      : "AWAITING_PARTIES";
+
   await prisma.$transaction([
     prisma.documentVersion.create({
       data: {
@@ -99,6 +121,7 @@ export async function PATCH(
         sellerJurisdiction: data.sellerState,
         buyerJurisdiction: data.buyerState,
         currentVersion: nextVersion,
+        status: nextStatus,
       },
     }),
     prisma.auditEvent.create({
