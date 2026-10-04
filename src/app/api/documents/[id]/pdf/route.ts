@@ -5,7 +5,7 @@ import { generateStoredPdf } from "@/lib/pdf";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -58,10 +58,14 @@ export async function GET(
     filename = generated.filename;
   }
 
+  const mode = new URL(request.url).searchParams.get("mode");
+  const disposition = mode === "preview" ? "inline" : "attachment";
+  const safeName = filename.replace(/["\r\n]/g, "");
+
   return new Response(new Uint8Array(bytes), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${filename.replace(/"/g, "")}"`,
+      "Content-Disposition": `${disposition}; filename="${safeName}"`,
       "Cache-Control": "private, no-store",
     },
   });
