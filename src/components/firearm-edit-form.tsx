@@ -11,12 +11,6 @@ type Props = {
     price: number | string;
     sellerState: string;
     buyerState: string;
-    manufacturer: string;
-    model: string;
-    caliber: string;
-    firearmType: string;
-    serialNumber: string;
-    notes: string;
   };
 };
 
@@ -49,7 +43,7 @@ export function FirearmEditForm({ documentId, initial }: Props) {
 
     if (!response.ok) {
       setPending(false);
-      setError(result?.error ?? "Unable to save the draft.");
+      setError(result?.error ?? "Unable to save the sale terms.");
       return;
     }
 
@@ -61,11 +55,22 @@ export function FirearmEditForm({ documentId, initial }: Props) {
     <form className="form-stack" onSubmit={submit}>
       <section className="card">
         <h2>Sale details</h2>
+        <p className="muted">
+          The person who started the draft controls these shared transaction
+          terms until signing begins.
+        </p>
+
         <div className="form-grid">
           <label className="field">
             <span>Agreement date</span>
-            <input name="agreementDate" type="date" required defaultValue={initial.agreementDate} />
+            <input
+              name="agreementDate"
+              type="date"
+              required
+              defaultValue={initial.agreementDate}
+            />
           </label>
+
           <label className="field">
             <span>Sale price ($)</span>
             <input
@@ -78,69 +83,40 @@ export function FirearmEditForm({ documentId, initial }: Props) {
               defaultValue={initial.price}
             />
           </label>
+
           <label className="field">
             <span>Seller state</span>
-            <select value={sellerState} onChange={(event) => setSellerState(event.target.value)}>
+            <select
+              value={sellerState}
+              onChange={(event) => setSellerState(event.target.value)}
+            >
               {US_STATES.map(([code, name]) => (
-                <option key={code} value={code}>{name}</option>
+                <option key={code} value={code}>
+                  {name}
+                </option>
               ))}
             </select>
           </label>
+
           <label className="field">
             <span>Buyer state</span>
-            <select value={buyerState} onChange={(event) => setBuyerState(event.target.value)}>
+            <select
+              value={buyerState}
+              onChange={(event) => setBuyerState(event.target.value)}
+            >
               {US_STATES.map(([code, name]) => (
-                <option key={code} value={code}>{name}</option>
+                <option key={code} value={code}>
+                  {name}
+                </option>
               ))}
             </select>
-          </label>
-        </div>
-      </section>
-
-      <section className="card">
-        <h2>Firearm details</h2>
-        <div className="form-grid">
-          <label className="field">
-            <span>Manufacturer</span>
-            <input name="manufacturer" required defaultValue={initial.manufacturer} />
-          </label>
-          <label className="field">
-            <span>Model</span>
-            <input name="model" required defaultValue={initial.model} />
-          </label>
-          <label className="field">
-            <span>Caliber / gauge</span>
-            <input name="caliber" required defaultValue={initial.caliber} />
-          </label>
-          <label className="field">
-            <span>Firearm type</span>
-            <select name="firearmType" required defaultValue={initial.firearmType || "HANDGUN"}>
-              <option value="HANDGUN">Handgun</option>
-              <option value="RIFLE">Rifle</option>
-              <option value="SHOTGUN">Shotgun</option>
-              <option value="OTHER">Other</option>
-            </select>
-          </label>
-          <label className="field full">
-            <span>Serial number</span>
-            <input
-              name="serialNumber"
-              required
-              defaultValue={initial.serialNumber}
-              autoCapitalize="characters"
-              autoCorrect="off"
-              spellCheck={false}
-            />
-          </label>
-          <label className="field full">
-            <span>Condition / notes</span>
-            <textarea name="notes" rows={4} defaultValue={initial.notes} />
           </label>
         </div>
 
         {sellerState !== buyerState ? (
           <div className="notice warning">
-            Interstate workflow will remain enabled because buyer and seller states differ.
+            Interstate workflow will remain enabled because buyer and seller
+            states differ.
           </div>
         ) : null}
       </section>
@@ -149,7 +125,7 @@ export function FirearmEditForm({ documentId, initial }: Props) {
 
       <div className="mobile-submit-bar">
         <button type="submit" disabled={pending}>
-          {pending ? "Saving..." : "Save draft changes"}
+          {pending ? "Saving..." : "Save sale terms"}
         </button>
       </div>
     </form>
