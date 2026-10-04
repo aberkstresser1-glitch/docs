@@ -1,32 +1,22 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { DeleteDraftButton } from "@/components/delete-draft-button";
+import { DocumentFileActions } from "@/components/document-file-actions";
+import { FflCompletionForm } from "@/components/ffl-completion-form";
+import { InvitePartyPanel } from "@/components/invite-party-panel";
+import { SignaturePanel } from "@/components/signature-panel";
 import { auth } from "@/lib/auth";
+import {
+  partyDetailsComplete,
+  type FirearmPayload,
+} from "@/lib/document-types";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ id: string }>;
-};
-
-type FirearmPayload = {
-  transaction?: {
-    agreementDate?: string;
-    price?: number;
-    sellerState?: string;
-    buyerState?: string;
-    interstate?: boolean;
-    externalFflRequired?: boolean;
-  };
-  firearm?: {
-    manufacturer?: string;
-    model?: string;
-    caliber?: string;
-    firearmType?: string;
-    serialNumber?: string;
-    notes?: string;
-  };
 };
 
 export default async function DocumentPage({ params }: PageProps) {
@@ -51,18 +41,54 @@ export default async function DocumentPage({ params }: PageProps) {
       versions: {
         orderBy: { version: "desc" },
         take: 1,
+        include: {
+          signatures: {
+            orderBy: { signedAt: "asc" },
+          },
+        },
       },
     },
   });
 
   if (!document) notFound();
 
-  const payload = (document.versions[0]?.payload ?? {}) as FirearmPayload;
+  const version = document.versions[0];
+  const payload = (version?.payload ?? {}) as FirearmPayload;
   const transaction = payload.transaction ?? {};
   const firearm = payload.firearm ?? {};
+  const parties = payload.parties ?? {};
   const myParticipant = document.participants.find(
     (participant) => participant.userId === session.user.id,
   );
+  const otherParticipant = document.participants.find(
+    (participant) =>
+      ["BUYER", "SELLER"].includes(participant.role) &&
+      participant.id !== myParticipant?.id,
+  );
+
+  const isCreator = document.creatorId === session.user.id;
+  const signatureCount = version?.signatures.length ?? 0;
+  const mySignature = version?.signatures.find(
+    (signature) => signature.participantId === myParticipant?.id,
+  );
+  const editable =
+    Boolean(version) &&
+    signatureCount === 0 &&
+    !version?.immutable &&
+    !["FINALIZED", "AWAITING_EXTERNAL_STEP", "VOID"].includes(document.status);
+
+  const buyerComplete = partyDetailsComplete(parties.BUYER);
+  const sellerComplete = partyDetailsComplete(parties.SELLER);
+  const bothPartiesLinked = document.participants
+    .filter((participant) => ["BUYER", "SELLER"].includes(participant.role))
+    .every((participant) => Boolean(participant.userId));
+  const readyToSign = buyerComplete && sellerComplete && bothPartiesLinked;
+
+  const myRole =
+    myParticipant && ["BUYER", "SELLER"].includes(myParticipant.role)
+      ? (myParticipant.role as "BUYER" | "SELLER")
+      : null;
+  const myLegalName = myRole ? parties[myRole]?.fullName ?? "" : "";
 
   return (
     <>
@@ -82,16 +108,21 @@ export default async function DocumentPage({ params }: PageProps) {
           <h1>{document.title}</h1>
           <p>
             Your role: <strong>{myParticipant?.role ?? "Participant"}</strong>
+            {" · "}Version {version?.version ?? document.currentVersion}
           </p>
         </section>
 
         {transaction.interstate ? (
           <section className="notice warning" style={{ marginBottom: "1rem" }}>
-            <strong>Interstate / external FFL step required</strong>
+            <strong>
+              {document.status === "FINALIZED"
+                ? "Interstate transfer completion recorded"
+                : "Interstate / receiving-FFL step required"}
+            </strong>
             <div>
-              Buyer and seller states differ. This document cannot represent
-              the firearm as transferred/completed solely because the parties
-              sign it. The receiving FFL step will be tracked separately.
+              Buyer and seller states differ. Signing records the parties&apos;
+              agreement, but the firearm is not treated as transferred/completed
+              until the receiving-FFL step is separately recorded.
             </div>
           </section>
         ) : null}
@@ -126,40 +157,158 @@ export default async function DocumentPage({ params }: PageProps) {
               <div><dt>Seller state</dt><dd>{transaction.sellerState ?? "—"}</dd></div>
               <div><dt>Buyer state</dt><dd>{transaction.buyerState ?? "—"}</dd></div>
             </dl>
+
+            {editable && isCreator ? (
+              <div className="actions">
+                <Link className="button secondary" href={`/documents/${id}/edit`}>
+                  Edit sale / firearm draft
+                </Link>
+              </div>
+            ) : null}
           </article>
 
           <article className="card">
             <h2>Parties</h2>
             <div className="list">
-              {document.participants.map((participant) => (
-                <div className="document-row" key={participant.id}>
-                  <strong>{participant.role}</strong>
-                  <span className="muted">
-                    {participant.displayName ??
-                      participant.email ??
-                      "Waiting for participant"}
-                  </span>
-                </div>
-              ))}
+              {document.participants
+                .filter((participant) => ["BUYER", "SELLER"].includes(participant.role))
+                .map((participant) => {
+                  const role = participant.role as "BUYER" | "SELLER";
+                  const details = parties[role];
+                  const signature = version?.signatures.find(
+                    (item) => item.participantId === participant.id,
+                  );
+
+                  return (
+                    <div className="document-row" key={participant.id}>
+                      <strong>{role}</strong>
+                      <span className="muted">
+                        {details?.fullName ??
+                          participant.displayName ??
+                          participant.email ??
+                          "Waiting for participant"}
+                      </span>
+                      <span className="muted">
+                        {!participant.userId
+                          ? "Not joined"
+                          : !partyDetailsComplete(details)
+                            ? "Information incomplete"
+                            : signature
+                              ? `Signed ${signature.signedAt.toLocaleString()}`
+                              : "Information complete"}
+                      </span>
+                    </div>
+                  );
+                })}
             </div>
+
+            {editable && myRole ? (
+              <div className="actions">
+                <Link className="button secondary" href={`/documents/${id}/party`}>
+                  Edit my information
+                </Link>
+              </div>
+            ) : null}
           </article>
 
-          <article className="card">
-            <h2>Next step</h2>
-            <p className="muted">
-              Secure invitations, party details, signature adoption, and PDF
-              finalization are the next workflow layer.
-            </p>
-            <button type="button" disabled>
-              Invite other party — coming next
-            </button>
-          </article>
+          {editable && isCreator && otherParticipant && !otherParticipant.userId ? (
+            <article className="card">
+              <h2>Invite the {otherParticipant.role.toLowerCase()}</h2>
+              <p className="muted">
+                Send a secure link. They can create an account or sign in, then
+                the document will appear in their own library.
+              </p>
+              <InvitePartyPanel
+                documentId={id}
+                role={otherParticipant.role}
+              />
+            </article>
+          ) : null}
         </section>
 
         {firearm.notes ? (
           <section className="card" style={{ marginTop: "1rem" }}>
             <h2>Condition / notes</h2>
             <p className="prewrap">{firearm.notes}</p>
+          </section>
+        ) : null}
+
+        {readyToSign && myRole && !["FINALIZED", "AWAITING_EXTERNAL_STEP"].includes(document.status) ? (
+          <section className="card" style={{ marginTop: "1rem" }}>
+            <h2>Electronic signature</h2>
+            <p className="muted">
+              Once the first party signs, this exact document version is frozen.
+            </p>
+            <SignaturePanel
+              documentId={id}
+              legalName={myLegalName}
+              alreadySigned={Boolean(mySignature)}
+            />
+          </section>
+        ) : null}
+
+        {!readyToSign && signatureCount === 0 ? (
+          <section className="card" style={{ marginTop: "1rem" }}>
+            <h2>Before signing</h2>
+            <p className="muted">
+              Both parties must join the document and complete their required
+              personal information before either signature is enabled.
+            </p>
+          </section>
+        ) : null}
+
+        {document.status === "AWAITING_EXTERNAL_STEP" ? (
+          <>
+            <section className="card" style={{ marginTop: "1rem" }}>
+              <h2>Signed agreement</h2>
+              <p className="muted">
+                Both parties have signed. The interstate transfer is still
+                pending the receiving FFL.
+              </p>
+              <DocumentFileActions
+                documentId={id}
+                title={document.title}
+                templateKey={document.templateKey}
+                status={document.status}
+                updatedAt={document.updatedAt.toISOString()}
+                finalizedAt={document.finalizedAt?.toISOString() ?? null}
+              />
+            </section>
+
+            {isCreator ? (
+              <section className="card" style={{ marginTop: "1rem" }}>
+                <h2>Record receiving-FFL completion</h2>
+                <FflCompletionForm documentId={id} />
+              </section>
+            ) : null}
+          </>
+        ) : null}
+
+        {document.status === "FINALIZED" ? (
+          <section className="card" style={{ marginTop: "1rem" }}>
+            <h2>Completed document</h2>
+            <p className="muted">
+              This version is finalized and locked. Both parties can keep their
+              own PDF and offline device copy.
+            </p>
+            <DocumentFileActions
+              documentId={id}
+              title={document.title}
+              templateKey={document.templateKey}
+              status={document.status}
+              updatedAt={document.updatedAt.toISOString()}
+              finalizedAt={document.finalizedAt?.toISOString() ?? null}
+            />
+          </section>
+        ) : null}
+
+        {isCreator && editable ? (
+          <section className="card danger-zone" style={{ marginTop: "1rem" }}>
+            <h2>Draft controls</h2>
+            <p className="muted">
+              Draft deletion is permanent. Once signing starts, deletion is disabled.
+            </p>
+            <DeleteDraftButton documentId={id} />
           </section>
         ) : null}
       </main>
