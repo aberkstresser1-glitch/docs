@@ -6,9 +6,16 @@ import { auth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewFirearmDocumentPage() {
+export default async function NewFirearmDocumentPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ role?: string }>;
+}) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
+
+  const params = await searchParams;
+  const initialRole = params.role === "BUYER" ? "BUYER" : "SELLER";
 
   return (
     <>
@@ -24,15 +31,18 @@ export default async function NewFirearmDocumentPage() {
 
       <main className="shell">
         <section className="hero">
-          <span className="badge">Template v1</span>
+          <span className="badge">New document</span>
           <h1>Firearm Bill of Sale</h1>
           <p>
-            Start by choosing your role and entering the shared sale details.
-            The other party can be invited to complete their side later.
+            Either party can start the draft. The Seller provides the firearm
+            identification, and each party completes their own personal information.
           </p>
         </section>
 
-        <FirearmNewForm currentUserName={session.user.name} />
+        <FirearmNewForm
+          currentUserName={session.user.name}
+          initialRole={initialRole}
+        />
       </main>
     </>
   );
