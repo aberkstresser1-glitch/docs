@@ -23,7 +23,7 @@ const signSchema = z.object({
 });
 
 const CONSENT_TEXT =
-  "I adopt the typed name shown as my electronic signature and intend to sign this exact document version. I understand that this signature does not replace any external legal transfer process required by applicable law.";
+  "I adopt the signature above as my electronic signature and intend to sign this document. This signature does not replace any transfer process required by law.";
 
 function normalizeName(value: string) {
   return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
