@@ -22,6 +22,18 @@ function money(value: unknown) {
     : "—";
 }
 
+function signedAtLabel(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  }).format(date);
+}
+
 function signatureDataUrl(style: string) {
   try {
     const parsed = JSON.parse(style) as { kind?: string; dataUrl?: string };
@@ -195,7 +207,7 @@ export async function generateStoredPdf(documentId: string) {
     field("Email", party.email);
   }
 
-  heading("Electronic signatures");
+  heading("Signatures");
   for (const signature of version.signatures) {
     const participant = document.participants.find(
       (item) => item.id === signature.participantId,
@@ -243,11 +255,13 @@ export async function generateStoredPdf(documentId: string) {
       });
     }
 
-    field("Typed legal name", signature.typedName);
-    field("Signed at", signature.signedAt.toISOString());
-    field("Document hash", signature.documentHash);
-    wrapped(signature.consentText, regular, 8.5);
-    y -= 5;
+    line(`Signed ${signedAtLabel(signature.signedAt)}`, {
+      font: regular,
+      size: 9,
+      gap: 14,
+    });
+    wrapped(signature.consentText, regular, 7.8);
+    y -= 8;
   }
 
   if (completion) {
@@ -267,13 +281,6 @@ export async function generateStoredPdf(documentId: string) {
       wrapped(completion.notes, regular, 10);
     }
   }
-
-  heading("Record information");
-  field("Document ID", document.id);
-  field("Template", `${document.templateKey} v${document.templateVersion}`);
-  field("Document version", version.version);
-  field("Status", document.status);
-  field("Finalized at", document.finalizedAt?.toISOString() ?? "—");
 
   const bytes = await pdf.save();
   const root = process.env.STORAGE_ROOT || "/data/documents";
