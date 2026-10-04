@@ -11,12 +11,6 @@ const sharedDraftSchema = z.object({
   price: z.coerce.number().min(0),
   sellerState: z.string().length(2),
   buyerState: z.string().length(2),
-  manufacturer: z.string().trim().min(1).max(100),
-  model: z.string().trim().min(1).max(100),
-  caliber: z.string().trim().min(1).max(60),
-  firearmType: z.enum(["HANDGUN", "RIFLE", "SHOTGUN", "OTHER"]),
-  serialNumber: z.string().trim().min(1).max(120),
-  notes: z.string().trim().max(4000).optional().default(""),
 });
 
 async function getSession() {
@@ -88,15 +82,6 @@ export async function PATCH(
       interstate,
       externalFflRequired: interstate,
     },
-    firearm: {
-      ...(previous.firearm ?? {}),
-      manufacturer: data.manufacturer,
-      model: data.model,
-      caliber: data.caliber,
-      firearmType: data.firearmType,
-      serialNumber: data.serialNumber,
-      notes: data.notes,
-    },
   };
 
   await prisma.$transaction([
@@ -111,7 +96,6 @@ export async function PATCH(
     prisma.document.update({
       where: { id: document.id },
       data: {
-        title: `${data.manufacturer} ${data.model} Bill of Sale`,
         sellerJurisdiction: data.sellerState,
         buyerJurisdiction: data.buyerState,
         currentVersion: nextVersion,
@@ -121,7 +105,7 @@ export async function PATCH(
       data: {
         documentId: document.id,
         actorUserId: session.user.id,
-        eventType: "SHARED_DRAFT_UPDATED",
+        eventType: "SALE_TERMS_UPDATED",
         metadata: { version: nextVersion, interstate },
       },
     }),
