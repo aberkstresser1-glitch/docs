@@ -42,7 +42,6 @@ export default async function EditDocumentPage({
 
   const payload = (version.payload ?? {}) as FirearmPayload;
   const transaction = payload.transaction ?? {};
-  const firearm = payload.firearm ?? {};
 
   return (
     <>
@@ -58,9 +57,9 @@ export default async function EditDocumentPage({
 
       <main className="shell">
         <section className="hero">
-          <span className="badge">Draft v{document.currentVersion}</span>
+          <span className="badge">Draft</span>
           <h1>Edit {document.title}</h1>
-          <p>Shared sale and firearm information can be changed until signing begins.</p>
+          <p>Shared sale terms can be changed by the draft creator until signing begins.</p>
         </section>
 
         <FirearmEditForm
@@ -70,12 +69,6 @@ export default async function EditDocumentPage({
             price: transaction.price ?? "",
             sellerState: transaction.sellerState ?? "AL",
             buyerState: transaction.buyerState ?? "AL",
-            manufacturer: firearm.manufacturer ?? "",
-            model: firearm.model ?? "",
-            caliber: firearm.caliber ?? "",
-            firearmType: firearm.firearmType ?? "HANDGUN",
-            serialNumber: firearm.serialNumber ?? "",
-            notes: firearm.notes ?? "",
           }}
         />
       </main>
