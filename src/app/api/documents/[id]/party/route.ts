@@ -77,6 +77,20 @@ export async function PATCH(
 
   const previous = (latest.payload ?? {}) as FirearmPayload;
   const role = participant.role as "BUYER" | "SELLER";
+  const expectedState =
+    role === "BUYER"
+      ? previous.transaction?.buyerState
+      : previous.transaction?.sellerState;
+
+  if (expectedState && parsed.data.state !== expectedState) {
+    return Response.json(
+      {
+        error: `Your residence state must match the ${role.toLowerCase()} state selected for this document. The creator can edit the shared draft first if that state needs to change.`,
+      },
+      { status: 400 },
+    );
+  }
+
   const details: PartyDetails = parsed.data;
   const parties = {
     ...(previous.parties ?? {}),
