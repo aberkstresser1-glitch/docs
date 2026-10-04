@@ -13,6 +13,13 @@ import { requestMetadata } from "@/lib/request-meta";
 const signSchema = z.object({
   typedName: z.string().trim().min(2).max(150),
   consent: z.literal(true),
+  signatureImage: z
+    .string()
+    .max(500_000)
+    .refine(
+      (value) => value.startsWith("data:image/png;base64,"),
+      "Signature image must be a PNG data URL.",
+    ),
 });
 
 const CONSENT_TEXT =
@@ -126,7 +133,10 @@ export async function POST(
         participantId: participant.id,
         signerUserId: session.user.id,
         typedName: parsed.data.typedName,
-        signatureStyle: "typed-script-v1",
+        signatureStyle: JSON.stringify({
+          kind: "typed-cursive-png-v1",
+          dataUrl: parsed.data.signatureImage,
+        }),
         consentText: CONSENT_TEXT,
         documentHash,
         ipAddress: metadata.ipAddress,
