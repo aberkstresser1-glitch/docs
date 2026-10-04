@@ -58,7 +58,8 @@ export function FirearmNewForm({ currentUserName }: Props) {
       <section className="card">
         <h2>1. Which party are you?</h2>
         <p className="muted">
-          You are signed in as <strong>{currentUserName}</strong>.
+          Either the Buyer or Seller can start the draft. You are signed in as{" "}
+          <strong>{currentUserName}</strong>.
         </p>
 
         <div className="role-grid">
@@ -81,7 +82,7 @@ export function FirearmNewForm({ currentUserName }: Props) {
       </section>
 
       <section className="card">
-        <h2>2. Jurisdictions</h2>
+        <h2>2. Sale setup</h2>
 
         <div className="form-grid">
           <label className="field">
@@ -111,30 +112,7 @@ export function FirearmNewForm({ currentUserName }: Props) {
               ))}
             </select>
           </label>
-        </div>
 
-        {interstate ? (
-          <div className="notice warning">
-            <strong>Interstate transfer workflow</strong>
-            <div>
-              The buyer and seller states differ. This draft will be marked as
-              requiring an external FFL transfer step before the firearm can be
-              marked transferred/completed. Signing this document will not by
-              itself complete that transfer.
-            </div>
-          </div>
-        ) : (
-          <div className="notice">
-            Same-state workflow selected. State and local requirements may
-            still apply.
-          </div>
-        )}
-      </section>
-
-      <section className="card">
-        <h2>3. Firearm and sale details</h2>
-
-        <div className="form-grid">
           <label className="field">
             <span>Agreement date</span>
             <input name="agreementDate" type="date" required />
@@ -151,59 +129,99 @@ export function FirearmNewForm({ currentUserName }: Props) {
               required
             />
           </label>
-
-          <label className="field">
-            <span>Manufacturer</span>
-            <input name="manufacturer" placeholder="Taurus" required />
-          </label>
-
-          <label className="field">
-            <span>Model</span>
-            <input name="model" placeholder="GX2" required />
-          </label>
-
-          <label className="field">
-            <span>Caliber / gauge</span>
-            <input name="caliber" placeholder="9mm" required />
-          </label>
-
-          <label className="field">
-            <span>Firearm type</span>
-            <select name="firearmType" required defaultValue="HANDGUN">
-              <option value="HANDGUN">Handgun</option>
-              <option value="RIFLE">Rifle</option>
-              <option value="SHOTGUN">Shotgun</option>
-              <option value="OTHER">Other</option>
-            </select>
-          </label>
-
-          <label className="field full">
-            <span>Serial number</span>
-            <input
-              name="serialNumber"
-              autoCapitalize="characters"
-              autoCorrect="off"
-              spellCheck={false}
-              required
-            />
-          </label>
-
-          <label className="field full">
-            <span>Condition / notes</span>
-            <textarea
-              name="notes"
-              rows={4}
-              placeholder="Condition, included magazines/accessories, or other agreed details."
-            />
-          </label>
         </div>
+
+        {interstate ? (
+          <div className="notice warning">
+            <strong>Interstate transfer workflow</strong>
+            <div>
+              The buyer and seller states differ. The signed agreement will
+              still require the receiving-FFL step before the transfer can be
+              marked completed.
+            </div>
+          </div>
+        ) : (
+          <div className="notice">
+            Same-state workflow selected. State and local requirements may
+            still apply.
+          </div>
+        )}
+      </section>
+
+      <section className="card">
+        <h2>3. Seller firearm information</h2>
+
+        {role === "SELLER" ? (
+          <>
+            <p className="muted">
+              Because you are the Seller, complete the firearm information now.
+              You can still edit it later until signing begins.
+            </p>
+
+            <div className="form-grid">
+              <label className="field">
+                <span>Manufacturer</span>
+                <input name="manufacturer" placeholder="Taurus" required />
+              </label>
+
+              <label className="field">
+                <span>Model</span>
+                <input name="model" placeholder="GX2" required />
+              </label>
+
+              <label className="field">
+                <span>Caliber / gauge</span>
+                <input name="caliber" placeholder="9mm" required />
+              </label>
+
+              <label className="field">
+                <span>Firearm type</span>
+                <select name="firearmType" required defaultValue="HANDGUN">
+                  <option value="HANDGUN">Handgun</option>
+                  <option value="RIFLE">Rifle</option>
+                  <option value="SHOTGUN">Shotgun</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </label>
+
+              <label className="field full">
+                <span>Serial number</span>
+                <input
+                  name="serialNumber"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  required
+                />
+              </label>
+
+              <label className="field full">
+                <span>Condition / notes</span>
+                <textarea
+                  name="notes"
+                  rows={4}
+                  placeholder="Condition, included magazines/accessories, or other agreed details."
+                />
+              </label>
+            </div>
+          </>
+        ) : (
+          <div className="notice">
+            <strong>The Seller completes this section.</strong>
+            <div>
+              You can start the draft as the Buyer now. After you invite the
+              Seller and they join, they will enter the manufacturer, model,
+              caliber, type, serial number, and condition information.
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="card">
         <h2>4. Start the draft</h2>
         <p className="muted">
-          This creates the document in your account. It does not sign or
-          finalize anything yet.
+          This creates the document in your account. Nothing is signed or
+          finalized yet.
         </p>
 
         {error ? <p className="error">{error}</p> : null}
