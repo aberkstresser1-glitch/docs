@@ -9,6 +9,18 @@ export const metadata: Metadata = {
   },
   description: "Private document creation, signing, storage, and offline access.",
   manifest: "/manifest.webmanifest",
+  applicationName: "Docs",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Docs",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export const viewport: Viewport = {
