@@ -22,6 +22,22 @@ function money(value: unknown) {
     : "—";
 }
 
+function signatureDataUrl(style: string) {
+  try {
+    const parsed = JSON.parse(style) as { kind?: string; dataUrl?: string };
+    if (
+      parsed.kind === "typed-cursive-png-v1" &&
+      parsed.dataUrl?.startsWith("data:image/png;base64,")
+    ) {
+      return parsed.dataUrl;
+    }
+  } catch {
+    // Older signatures stored a simple style label.
+  }
+
+  return null;
+}
+
 export async function generateStoredPdf(documentId: string) {
   const document = await prisma.document.findUnique({
     where: { id: documentId },
@@ -184,11 +200,50 @@ export async function generateStoredPdf(documentId: string) {
     const participant = document.participants.find(
       (item) => item.id === signature.participantId,
     );
-    line(`${participant?.role ?? "PARTY"} — ${signature.typedName}`, {
-      font: italic,
-      size: 15,
-      gap: 21,
+
+    line(`${participant?.role ?? "PARTY"} signature`, {
+      font: bold,
+      size: 9.5,
+      gap: 16,
     });
+
+    const dataUrl = signatureDataUrl(signature.signatureStyle);
+
+    if (dataUrl) {
+      try {
+        const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+        const image = await pdf.embedPng(new Uint8Array(Buffer.from(base64, "base64")));
+        const natural = image.scale(1);
+        const maxWidth = 250;
+        const maxHeight = 68;
+        const scale = Math.min(maxWidth / natural.width, maxHeight / natural.height, 1);
+        const drawWidth = natural.width * scale;
+        const drawHeight = natural.height * scale;
+
+        ensure(drawHeight + 14);
+        page.drawImage(image, {
+          x: margin,
+          y: y - drawHeight + 8,
+          width: drawWidth,
+          height: drawHeight,
+        });
+        y -= drawHeight + 8;
+      } catch {
+        line(signature.typedName, {
+          font: italic,
+          size: 16,
+          gap: 22,
+        });
+      }
+    } else {
+      line(signature.typedName, {
+        font: italic,
+        size: 16,
+        gap: 22,
+      });
+    }
+
+    field("Typed legal name", signature.typedName);
     field("Signed at", signature.signedAt.toISOString());
     field("Document hash", signature.documentHash);
     wrapped(signature.consentText, regular, 8.5);
