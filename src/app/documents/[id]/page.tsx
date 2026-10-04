@@ -108,7 +108,6 @@ export default async function DocumentPage({ params }: PageProps) {
           <h1>{document.title}</h1>
           <p>
             Your role: <strong>{myParticipant?.role ?? "Participant"}</strong>
-            {" · "}Version {version?.version ?? document.currentVersion}
           </p>
         </section>
 
