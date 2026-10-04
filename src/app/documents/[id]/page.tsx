@@ -8,6 +8,7 @@ import { InvitePartyPanel } from "@/components/invite-party-panel";
 import { SignaturePanel } from "@/components/signature-panel";
 import { auth } from "@/lib/auth";
 import {
+  firearmDetailsComplete,
   partyDetailsComplete,
   type FirearmPayload,
 } from "@/lib/document-types";
@@ -79,10 +80,12 @@ export default async function DocumentPage({ params }: PageProps) {
 
   const buyerComplete = partyDetailsComplete(parties.BUYER);
   const sellerComplete = partyDetailsComplete(parties.SELLER);
+  const firearmComplete = firearmDetailsComplete(firearm);
   const bothPartiesLinked = document.participants
     .filter((participant) => ["BUYER", "SELLER"].includes(participant.role))
     .every((participant) => Boolean(participant.userId));
-  const readyToSign = buyerComplete && sellerComplete && bothPartiesLinked;
+  const readyToSign =
+    buyerComplete && sellerComplete && bothPartiesLinked && firearmComplete;
 
   const myRole =
     myParticipant && ["BUYER", "SELLER"].includes(myParticipant.role)
@@ -129,6 +132,17 @@ export default async function DocumentPage({ params }: PageProps) {
         <section className="grid">
           <article className="card">
             <h2>Firearm</h2>
+
+            {!firearmComplete ? (
+              <div className="notice" style={{ marginBottom: "0.8rem" }}>
+                <strong>Waiting on Seller</strong>
+                <div>
+                  The Seller is responsible for completing the firearm
+                  identification before signing can begin.
+                </div>
+              </div>
+            ) : null}
+
             <dl className="detail-list">
               <div><dt>Manufacturer</dt><dd>{firearm.manufacturer ?? "—"}</dd></div>
               <div><dt>Model</dt><dd>{firearm.model ?? "—"}</dd></div>
@@ -136,6 +150,19 @@ export default async function DocumentPage({ params }: PageProps) {
               <div><dt>Type</dt><dd>{firearm.firearmType ?? "—"}</dd></div>
               <div><dt>Serial number</dt><dd>{firearm.serialNumber ?? "—"}</dd></div>
             </dl>
+
+            {editable && myRole === "SELLER" ? (
+              <div className="actions">
+                <Link
+                  className="button secondary"
+                  href={`/documents/${id}/firearm`}
+                >
+                  {firearmComplete
+                    ? "Edit firearm information"
+                    : "Complete firearm information"}
+                </Link>
+              </div>
+            ) : null}
           </article>
 
           <article className="card">
@@ -160,7 +187,7 @@ export default async function DocumentPage({ params }: PageProps) {
             {editable && isCreator ? (
               <div className="actions">
                 <Link className="button secondary" href={`/documents/${id}/edit`}>
-                  Edit sale / firearm draft
+                  Edit sale terms
                 </Link>
               </div>
             ) : null}
@@ -250,8 +277,9 @@ export default async function DocumentPage({ params }: PageProps) {
           <section className="card" style={{ marginTop: "1rem" }}>
             <h2>Before signing</h2>
             <p className="muted">
-              Both parties must join the document and complete their required
-              personal information before either signature is enabled.
+              Both parties must join and complete their personal information,
+              and the Seller must complete the firearm information before
+              either signature is enabled.
             </p>
           </section>
         ) : null}
