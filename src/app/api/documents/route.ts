@@ -62,6 +62,13 @@ export async function POST(request: Request) {
       serialNumber: data.serialNumber,
       notes: data.notes,
     },
+    parties: {
+      [data.role]: {
+        fullName: session.user.name,
+        state: data.role === "SELLER" ? data.sellerState : data.buyerState,
+        email: session.user.email,
+      },
+    },
   };
 
   const document = await prisma.$transaction(async (tx) => {
