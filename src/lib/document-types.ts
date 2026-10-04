@@ -55,3 +55,14 @@ export function partyDetailsComplete(details?: PartyDetails) {
       details?.email?.trim(),
   );
 }
+
+
+export function firearmDetailsComplete(details?: FirearmPayload["firearm"]) {
+  return Boolean(
+    details?.manufacturer?.trim() &&
+      details?.model?.trim() &&
+      details?.caliber?.trim() &&
+      details?.firearmType?.trim() &&
+      details?.serialNumber?.trim(),
+  );
+}
