@@ -1,10 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  cacheDocument,
-  cachePdf,
-} from "@/lib/offline-db";
+import { cacheDocument, cachePdf } from "@/lib/offline-db";
 
 export function DocumentFileActions({
   documentId,
@@ -24,8 +21,11 @@ export function DocumentFileActions({
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  const previewUrl = `/api/documents/${documentId}/pdf?mode=preview`;
+  const downloadUrl = `/api/documents/${documentId}/pdf?mode=download`;
+
   async function fetchPdf() {
-    const response = await fetch(`/api/documents/${documentId}/pdf`);
+    const response = await fetch(previewUrl);
     if (!response.ok) {
       const result = await response.json().catch(() => null);
       throw new Error(result?.error ?? "PDF is not available yet.");
@@ -33,34 +33,45 @@ export function DocumentFileActions({
     return response.blob();
   }
 
-  async function download() {
+  function preview() {
+    window.open(previewUrl, "_blank", "noopener,noreferrer");
+  }
+
+  function download() {
+    const anchor = document.createElement("a");
+    anchor.href = downloadUrl;
+    anchor.download =
+      `${title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "document"}.pdf`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  }
+
+  async function share() {
     setPending(true);
     setMessage(null);
+
     try {
       const blob = await fetchPdf();
-      const fileName = `${title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "document"}.pdf`;
+      const fileName =
+        `${title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "document"}.pdf`;
       const file = new File([blob], fileName, { type: "application/pdf" });
 
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        try {
-          await navigator.share({
-            title,
-            files: [file],
-          });
-          return;
-        } catch {
-          // If the user closes the share sheet, fall back to a normal save.
-        }
+        await navigator.share({
+          title,
+          text: title,
+          files: [file],
+        });
+        return;
       }
 
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = fileName;
-      anchor.click();
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      setMessage("File sharing is not supported by this browser. Use Download PDF instead.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to get the PDF.");
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+      setMessage(error instanceof Error ? error.message : "Unable to share the PDF.");
     } finally {
       setPending(false);
     }
@@ -93,11 +104,22 @@ export function DocumentFileActions({
 
   return (
     <div className="form-stack">
-      <div className="actions">
-        <button type="button" onClick={download} disabled={pending}>
-          Save / share PDF
+      <div className="actions file-actions">
+        <button type="button" className="secondary" onClick={preview}>
+          Preview PDF
         </button>
-        <button className="secondary" type="button" onClick={keepOffline} disabled={pending}>
+        <button type="button" onClick={download}>
+          Download PDF
+        </button>
+        <button type="button" className="secondary" onClick={share} disabled={pending}>
+          Share PDF
+        </button>
+        <button
+          className="secondary"
+          type="button"
+          onClick={keepOffline}
+          disabled={pending}
+        >
           Keep available offline
         </button>
       </div>
