@@ -68,7 +68,8 @@ export async function generateStoredPdf(documentId: string) {
   });
 
   if (!document) throw new Error("Document not found");
-  const version = document.versions[0];
+  const currentDocument = document;
+  const version = currentDocument.versions[0];
   if (!version) throw new Error("Document version not found");
 
   const payload = (version.payload ?? {}) as FirearmPayload;
@@ -227,7 +228,7 @@ export async function generateStoredPdf(documentId: string) {
     role: "SELLER" | "BUYER",
     top: number,
   ) {
-    const participant = document.participants.find(
+    const participant = currentDocument.participants.find(
       (item) => item.role === role,
     );
     const signature = version.signatures.find(
