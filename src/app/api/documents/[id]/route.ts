@@ -1,3 +1,5 @@
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
@@ -129,7 +131,7 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const session = await getSession();
@@ -157,17 +159,27 @@ export async function DELETE(
     0,
   );
 
-  if (
-    signatureCount > 0 ||
-    document.status === "FINALIZED" ||
-    document.status === "AWAITING_EXTERNAL_STEP"
-  ) {
-    return Response.json(
-      { error: "Signed or completed documents cannot be deleted." },
-      { status: 409 },
-    );
+  if (signatureCount > 0 || ["FINALIZED", "AWAITING_EXTERNAL_STEP"].includes(document.status)) {
+    const body = await request.json().catch(() => null);
+    if (body?.confirmation !== "DELETE") {
+      return Response.json(
+        {
+          error:
+            "Signed or completed documents require the confirmation word DELETE before permanent deletion.",
+        },
+        { status: 400 },
+      );
+    }
   }
 
   await prisma.document.delete({ where: { id: document.id } });
+
+  try {
+    const root = process.env.STORAGE_ROOT || "/data/documents";
+    await fs.rm(path.join(root, document.id), { recursive: true, force: true });
+  } catch {
+    // Database deletion succeeded. Orphaned private files can be cleaned up later.
+  }
+
   return Response.json({ ok: true });
 }
