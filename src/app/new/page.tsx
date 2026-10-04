@@ -40,9 +40,20 @@ export default async function NewDocumentPage() {
               <p className="muted">{template.description}</p>
               <div className="actions">
                 {template.available && template.href ? (
-                  <Link className="button" href={template.href}>
-                    Use template
-                  </Link>
+                  template.key === "firearm_bill_of_sale" ? (
+                    <>
+                      <Link className="button" href={`${template.href}?role=SELLER`}>
+                        Start as Seller
+                      </Link>
+                      <Link className="button secondary" href={`${template.href}?role=BUYER`}>
+                        Start as Buyer
+                      </Link>
+                    </>
+                  ) : (
+                    <Link className="button" href={template.href}>
+                      Use template
+                    </Link>
+                  )
                 ) : (
                   <button type="button" disabled>
                     Coming soon
