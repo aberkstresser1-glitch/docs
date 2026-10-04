@@ -69,6 +69,18 @@ export async function POST(
     );
   }
 
+  if (
+    payload.transaction?.buyerState &&
+    parsed.data.dealerState !== payload.transaction.buyerState
+  ) {
+    return Response.json(
+      {
+        error: "For this interstate workflow, the receiving FFL state must match the buyer state on the document.",
+      },
+      { status: 400 },
+    );
+  }
+
   const now = new Date();
 
   await prisma.$transaction([
