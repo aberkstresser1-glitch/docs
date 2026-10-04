@@ -84,8 +84,15 @@ export default async function DocumentPage({ params }: PageProps) {
   const bothPartiesLinked = document.participants
     .filter((participant) => ["BUYER", "SELLER"].includes(participant.role))
     .every((participant) => Boolean(participant.userId));
+  const partyStatesMatch =
+    parties.BUYER?.state === transaction.buyerState &&
+    parties.SELLER?.state === transaction.sellerState;
   const readyToSign =
-    buyerComplete && sellerComplete && bothPartiesLinked && firearmComplete;
+    buyerComplete &&
+    sellerComplete &&
+    bothPartiesLinked &&
+    firearmComplete &&
+    partyStatesMatch;
 
   const myRole =
     myParticipant && ["BUYER", "SELLER"].includes(myParticipant.role)
