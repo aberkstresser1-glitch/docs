@@ -122,6 +122,8 @@ model Document {
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   finalizedAt        DateTime?
+  completedAt        DateTime?
+  externalCompletion Json?
   voidedAt           DateTime?
 
   creator      User                  @relation("DocumentCreator", fields: [creatorId], references: [id], onDelete: Restrict)
