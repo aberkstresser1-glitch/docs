@@ -94,12 +94,21 @@ export async function POST(
     .every((item) => Boolean(item.userId));
 
   const firearmComplete = firearmDetailsComplete(payload.firearm);
+  const partyStatesMatch =
+    payload.parties?.BUYER?.state === payload.transaction?.buyerState &&
+    payload.parties?.SELLER?.state === payload.transaction?.sellerState;
 
-  if (!buyerComplete || !sellerComplete || !bothLinked || !firearmComplete) {
+  if (
+    !buyerComplete ||
+    !sellerComplete ||
+    !bothLinked ||
+    !firearmComplete ||
+    !partyStatesMatch
+  ) {
     return Response.json(
       {
         error:
-          "Both parties must join, complete their information, and the Seller must complete the firearm information before signing.",
+          "Both parties must join, complete their information with states matching the sale terms, and the Seller must complete the firearm information before signing.",
       },
       { status: 409 },
     );
