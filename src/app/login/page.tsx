@@ -10,6 +10,11 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  function nextPath() {
+    const value = new URLSearchParams(window.location.search).get("next");
+    return value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -27,7 +32,7 @@ export default function LoginPage() {
       return;
     }
 
-    window.location.href = "/";
+    window.location.href = nextPath();
   }
 
   return (
