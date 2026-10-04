@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { hashDocumentPayload } from "@/lib/document-hash";
 import {
+  firearmDetailsComplete,
   partyDetailsComplete,
   type FirearmPayload,
 } from "@/lib/document-types";
@@ -92,9 +93,14 @@ export async function POST(
     .filter((item) => ["BUYER", "SELLER"].includes(item.role))
     .every((item) => Boolean(item.userId));
 
-  if (!buyerComplete || !sellerComplete || !bothLinked) {
+  const firearmComplete = firearmDetailsComplete(payload.firearm);
+
+  if (!buyerComplete || !sellerComplete || !bothLinked || !firearmComplete) {
     return Response.json(
-      { error: "Both parties must join and complete their information before signing." },
+      {
+        error:
+          "Both parties must join, complete their information, and the Seller must complete the firearm information before signing.",
+      },
       { status: 409 },
     );
   }
