@@ -130,7 +130,7 @@ export async function generateStoredPdf(documentId: string) {
     options?: { labelWidth?: number; valueSize?: number },
   ) {
     const labelWidth = options?.labelWidth ?? 76;
-    const value = String(
+    const renderedValue = String(
       value === null || value === undefined || value === "" ? "—" : value,
     );
     page.drawText(label, {
@@ -141,8 +141,8 @@ export async function generateStoredPdf(documentId: string) {
       color: rgb(0.38, 0.41, 0.47),
     });
     const available = Math.max(30, maxWidth - labelWidth);
-    const size = fitSize(value, regular, available, options?.valueSize ?? 8.6);
-    page.drawText(value, {
+    const size = fitSize(renderedValue, regular, available, options?.valueSize ?? 8.6);
+    page.drawText(renderedValue, {
       x: x + labelWidth,
       y: top,
       size,
