@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { DeleteDraftButton } from "@/components/delete-draft-button";
+import { DeleteDocumentButton } from "@/components/delete-document-button";
 import { DocumentFileActions } from "@/components/document-file-actions";
 import { FflCompletionForm } from "@/components/ffl-completion-form";
 import { InvitePartyPanel } from "@/components/invite-party-panel";
@@ -302,13 +302,21 @@ export default async function DocumentPage({ params }: PageProps) {
           </section>
         ) : null}
 
-        {isCreator && editable ? (
+        {isCreator ? (
           <section className="card danger-zone" style={{ marginTop: "1rem" }}>
-            <h2>Draft controls</h2>
+            <h2>{signatureCount > 0 ? "Document controls" : "Draft controls"}</h2>
             <p className="muted">
-              Draft deletion is permanent. Once signing starts, deletion is disabled.
+              {signatureCount > 0
+                ? "Permanent deletion removes this server record for every participant. Copies already downloaded or saved offline on another device cannot be erased."
+                : "Draft deletion is permanent and cannot be undone."}
             </p>
-            <DeleteDraftButton documentId={id} />
+            <DeleteDocumentButton
+              documentId={id}
+              signedOrFinalized={
+                signatureCount > 0 ||
+                ["FINALIZED", "AWAITING_EXTERNAL_STEP"].includes(document.status)
+              }
+            />
           </section>
         ) : null}
       </main>
