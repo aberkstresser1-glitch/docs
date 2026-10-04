@@ -3,20 +3,44 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const createDocumentSchema = z.object({
-  templateKey: z.literal("firearm_bill_of_sale"),
-  role: z.enum(["BUYER", "SELLER"]),
-  sellerState: z.string().length(2),
-  buyerState: z.string().length(2),
-  agreementDate: z.string().min(1),
-  price: z.coerce.number().min(0),
-  manufacturer: z.string().trim().min(1).max(100),
-  model: z.string().trim().min(1).max(100),
-  caliber: z.string().trim().min(1).max(60),
-  firearmType: z.enum(["HANDGUN", "RIFLE", "SHOTGUN", "OTHER"]),
-  serialNumber: z.string().trim().min(1).max(120),
-  notes: z.string().trim().max(4000).optional().default(""),
-});
+const createDocumentSchema = z
+  .object({
+    templateKey: z.literal("firearm_bill_of_sale"),
+    role: z.enum(["BUYER", "SELLER"]),
+    sellerState: z.string().length(2),
+    buyerState: z.string().length(2),
+    agreementDate: z.string().min(1),
+    price: z.coerce.number().min(0),
+    manufacturer: z.string().trim().max(100).optional(),
+    model: z.string().trim().max(100).optional(),
+    caliber: z.string().trim().max(60).optional(),
+    firearmType: z.enum(["HANDGUN", "RIFLE", "SHOTGUN", "OTHER"]).optional(),
+    serialNumber: z.string().trim().max(120).optional(),
+    notes: z.string().trim().max(4000).optional().default(""),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role !== "SELLER") return;
+
+    const required: Array<
+      ["manufacturer" | "model" | "caliber" | "firearmType" | "serialNumber", string | undefined]
+    > = [
+      ["manufacturer", data.manufacturer],
+      ["model", data.model],
+      ["caliber", data.caliber],
+      ["firearmType", data.firearmType],
+      ["serialNumber", data.serialNumber],
+    ];
+
+    for (const [field, value] of required) {
+      if (!value?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: "Required for the Seller.",
+        });
+      }
+    }
+  });
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -31,7 +55,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return Response.json(
       {
-        error: "Please check the required sale details and try again.",
+        error: "Please check the required draft details and try again.",
         issues: parsed.error.flatten(),
       },
       { status: 400 },
@@ -41,7 +65,23 @@ export async function POST(request: Request) {
   const data = parsed.data;
   const interstate = data.sellerState !== data.buyerState;
   const otherRole = data.role === "BUYER" ? "SELLER" : "BUYER";
-  const title = `${data.manufacturer} ${data.model} Bill of Sale`;
+  const sellerStarted = data.role === "SELLER";
+
+  const firearm = sellerStarted
+    ? {
+        manufacturer: data.manufacturer,
+        model: data.model,
+        caliber: data.caliber,
+        firearmType: data.firearmType,
+        serialNumber: data.serialNumber,
+        notes: data.notes,
+      }
+    : undefined;
+
+  const title =
+    sellerStarted && data.manufacturer && data.model
+      ? `${data.manufacturer} ${data.model} Bill of Sale`
+      : "Firearm Bill of Sale Draft";
 
   const payload = {
     templateKey: data.templateKey,
@@ -54,14 +94,7 @@ export async function POST(request: Request) {
       interstate,
       externalFflRequired: interstate,
     },
-    firearm: {
-      manufacturer: data.manufacturer,
-      model: data.model,
-      caliber: data.caliber,
-      firearmType: data.firearmType,
-      serialNumber: data.serialNumber,
-      notes: data.notes,
-    },
+    firearm,
     parties: {
       [data.role]: {
         fullName: session.user.name,
@@ -117,6 +150,7 @@ export async function POST(request: Request) {
           templateKey: data.templateKey,
           role: data.role,
           interstate,
+          firearmCompletedBySeller: sellerStarted,
         },
       },
     });
