@@ -6,11 +6,15 @@ import { US_STATES } from "@/lib/templates";
 
 type Props = {
   currentUserName: string;
+  initialRole?: "BUYER" | "SELLER";
 };
 
-export function FirearmNewForm({ currentUserName }: Props) {
+export function FirearmNewForm({
+  currentUserName,
+  initialRole = "SELLER",
+}: Props) {
   const router = useRouter();
-  const [role, setRole] = useState<"BUYER" | "SELLER">("SELLER");
+  const [role, setRole] = useState<"BUYER" | "SELLER">(initialRole);
   const [sellerState, setSellerState] = useState("AL");
   const [buyerState, setBuyerState] = useState("AL");
   const [pending, setPending] = useState(false);
