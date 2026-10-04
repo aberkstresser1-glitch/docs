@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
+  firearmDetailsComplete,
   partyDetailsComplete,
   type FirearmPayload,
   type PartyDetails,
@@ -111,7 +112,12 @@ export async function PATCH(
     .every((item) => Boolean(item.userId));
 
   const nextStatus =
-    bothLinked && buyerComplete && sellerComplete ? "READY_TO_SIGN" : "AWAITING_PARTIES";
+    bothLinked &&
+    buyerComplete &&
+    sellerComplete &&
+    firearmDetailsComplete(previous.firearm)
+      ? "READY_TO_SIGN"
+      : "AWAITING_PARTIES";
 
   await prisma.$transaction([
     prisma.documentVersion.create({
