@@ -472,3 +472,48 @@ main {
     padding: 1rem;
   }
 }
+
+
+.check-row {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 0.7rem;
+  align-items: start;
+  line-height: 1.45;
+}
+
+.check-row input {
+  width: 22px;
+  height: 22px;
+  margin: 0.1rem 0 0;
+}
+
+.signature-preview {
+  min-height: 86px;
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.15rem;
+  border: 1px dashed #98a2b3;
+  border-radius: 14px;
+  background: #fcfcfd;
+  font-family: "Snell Roundhand", "Apple Chancery", "Brush Script MT", cursive;
+  font-size: clamp(2rem, 8vw, 3.2rem);
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+button.danger {
+  background: #b42318;
+}
+
+.danger-zone {
+  border-color: #fecdca;
+  background: #fffbfa;
+}
+
+@media (max-width: 700px) {
+  .signature-preview {
+    min-height: 76px;
+    font-size: clamp(2rem, 11vw, 2.8rem);
+  }
+}
