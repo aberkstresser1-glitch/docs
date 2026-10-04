@@ -58,7 +58,7 @@ export async function GET(
     filename = generated.filename;
   }
 
-  return new Response(bytes, {
+  return new Response(new Uint8Array(bytes), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename.replace(/"/g, "")}"`,
